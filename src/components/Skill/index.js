@@ -11,10 +11,12 @@ class Skill extends React.Component {
     this.doRequest = this.doRequest.bind(this);
     this.createRequest = this.createRequest.bind(this);
     this.setRequest = this.setRequest.bind(this);
+    this.copyLastAttributes = this.copyLastAttributes.bind(this);
 
     this.state = {
       request: this.createRequest(props),
-      validRequest: true
+      validRequest: true,
+      alwaysCopyResponseSession: false
     }
   }
 
@@ -22,7 +24,6 @@ class Skill extends React.Component {
     debug('Skill Component: createRequest')
 
     const request = Object.assign({}, requests[props.requestType])
-
     if ('intent' === props.requestType) {
       request.request.intent.name = ''
       request.request.intent.slots = {}
@@ -68,6 +69,10 @@ class Skill extends React.Component {
     this.setState({
       request: this.createRequest(nextProps)
     })
+
+    if (this.state.alwaysCopyResponseSession) {
+      this.copyLastAttributes();
+    }
   }
 
   doRequest() {
@@ -77,12 +82,22 @@ class Skill extends React.Component {
     }
   }
 
+  copyLastAttributes() {
+    const response = this.props.response;
+    const request = JSON.parse(this.state.request);
+    request.session.attributes = Object.assign({}, request.session.attributes, response.sessionAttributes);
+    this.setState({
+      request: beautify(JSON.stringify(request))
+    });
+  }
+
   render() {
     debug('Skill Component: render');
 
     const request = this.state.request
     const response = beautify(JSON.stringify(this.props.response))
     const requestClass = (this.state.validRequest) ? 'code' : 'invalid code'
+    const { alwaysCopyResponseSession } = this.state;
 
     let firstIntentName = null
     let slots = []
@@ -187,7 +202,13 @@ class Skill extends React.Component {
           ''
         }
         <div>
-          <input type="button" className="btn btn-primary btn-lg" value="Send Request" onClick={this.doRequest} />
+          <input type="button" className="btn btn-primary btn-lg" value="Send Request" onClick={this.doRequest}/>
+          {!this.state.alwaysCopyResponseSession && <input type="button" className="btn btn-primary btn-lg" value="Copy Response Attributes" onClick={this.copyLastAttributes} style={{marginLeft: 10}}/>}
+
+        </div>
+        <div style={{marginTop: 10}}>
+          <input type="checkbox" checked={this.state.alwaysCopyResponseSession} onChange={() => this.setState({alwaysCopyResponseSession: !alwaysCopyResponseSession})}  style={{marginRight: 5}}/>
+          Always Copy Response Attributes
         </div>
 
         <div className="row req-resp">
